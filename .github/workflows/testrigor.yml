@@ -1,19 +1,22 @@
-name: Run TestRigor Tests
+# .github/workflows/testrigor.yml
+name: testRigor CI
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   run-tests:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Trigger TestRigor Tests
-        uses: testrigor/testrigor-github-action@v1
-        with:
-          email: ${{ secrets.TR_EMAIL }}
-          api_token: ${{ secrets.TR_API_KEY }}
-          test_suite_id: ${{ secrets.TR_SUITE_ID }}
-          git_branch: main
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run testRigor script
+        run: |
+          # Paste the Bash script you copied here,
+          # replacing placeholders like {$auth-token} and {$testId}
+          # with your GitHub secret variables:
+          # ${{ secrets.TR_AUTH_TOKEN }}, ${{ secrets.TR_SUITE_ID }}
