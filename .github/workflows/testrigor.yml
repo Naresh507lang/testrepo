@@ -1,0 +1,30 @@
+name: Run TestRigor Tests
+
+on:
+  push:
+    branches:
+      - main  # change if your branch is different
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install TestRigor CLI
+        run: pip install testrigor
+
+      - name: Run TestRigor Tests
+        run: |
+          testrigor run \
+            --email "${{ secrets.TR_EMAIL }}" \
+            --api_key "${{ secrets.TR_API_KEY }}" \
+            --test_suite_id "${{ secrets.TR_SUITE_ID }}" \
+            --branch "main"
