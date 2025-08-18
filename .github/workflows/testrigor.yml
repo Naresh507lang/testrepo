@@ -36,4 +36,17 @@ jobs:
 
           # ${{ secrets.TR_AUTH_TOKEN }}, ${{ secrets.TR_SUITE_ID }}
 
+                # Your existing steps to trigger testRigor and poll results
+      - name: Trigger testRigor Test Suite via API
+        # ... your testRigor step here ...
+
+      - name: Poll test results
+        # ... polling step here ...
+
+      # ✅ Add your deploy step here:
+      - name: Deploy to production
+        if: success()  # Runs only if all previous steps succeeded
+        run: echo "🚀 Deploying to production..."
+        # Replace the above with your actual deploy commands
+
  
