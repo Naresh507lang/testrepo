@@ -1,71 +1,37 @@
-name: Run testRigor Tests (CI/CD)
+- name: Trigger testRigor Test Suite (debug)
+  run: |
+    echo "📤 Triggering test run..."
 
-on:
-  push:
-    branches:
-      - main   # or change to your target branch
-  pull_request:
-    branches:
-      - main
+    URL="https://app.testrigor.com/api/v1/test_suites/${{ secrets.TR_SUITE_ID }}/execute.json"
 
-jobs:
-  test-suite:
-    runs-on: ubuntu-latest
+    echo "Calling: $URL"
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    http_response=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
+      -H "Authorization: Token ${{ secrets.TR_API_KEY }}" \
+      -H "Content-Type: application/json" \
+      -d '{ "branch": "main" }')
 
-      - name: Install jq (for JSON parsing)
-        run: sudo apt-get update && sudo apt-get install -y jq
+    echo "----- Raw API Response -----"
+    echo "$http_response"
+    echo "----------------------------"
 
-      - name: Trigger testRigor Test Suite via API
-        id: trigger
-        run: |
-          echo "📤 Triggering test run..."
+    body=$(echo "$http_response" | sed '$d')
+    status=$(echo "$http_response" | tail -n1)
 
-          response=$(curl -s -X POST "https://app.testrigor.com/api/v1/test_suites/${{ secrets.TR_SUITE_ID }}/execute.json" \
-            -H "Authorization: Token ${{ secrets.TR_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{ "branch": "main" }')
+    echo "📩 HTTP Status: $status"
+    echo "📦 Response Body: $body"
 
-          echo "API Response: $response"
+    if [ "$status" != "200" ]; then
+      echo "❌ API call failed with status code $status"
+      exit 1
+    fi
 
-          run_id=$(echo "$response" | jq -r '.id')
+    run_id=$(echo "$body" | jq -r '.id')
 
-          if [ "$run_id" == "null" ] || [ -z "$run_id" ]; then
-            echo "❌ Failed to trigger test run."
-            exit 1
-          fi
+    if [ "$run_id" == "null" ] || [ -z "$run_id" ]; then
+      echo "❌ No run ID returned."
+      exit 1
+    fi
 
-          echo "✅ Test run started with ID: $run_id"
-          echo "run_id=$run_id" >> $GITHUB_ENV
-
-      - name: Poll testRigor for test run status
-        run: |
-          echo "⏳ Polling test status..."
-
-          while true; do
-            sleep 15
-
-            status_response=$(curl -s -H "Authorization: Token ${{ secrets.TR_API_KEY }}" \
-              "https://app.testrigor.com/api/v1/test_runs/$run_id.json")
-
-            state=$(echo "$status_response" | jq -r '.state')
-            result=$(echo "$status_response" | jq -r '.result')
-
-            echo "🔄 Status: $state | Result: $result"
-
-            if [[ "$state" == "finished" ]]; then
-              if [[ "$result" == "passed" ]]; then
-                echo "✅ Tests Passed."
-                exit 0
-              else
-                echo "❌ Tests Failed."
-                exit 1
-              fi
-            elif [[ "$state" == "failed" ]]; then
-              echo "❌ Test execution failed internally."
-              exit 1
-            fi
-          done
+    echo "✅ Test run started with ID: $run_id"
+    echo "run_id=$run_id" >> $GITHUB_ENV
