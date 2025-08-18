@@ -1,37 +1,39 @@
-- name: Trigger testRigor Test Suite (debug)
-  run: |
-    echo "📤 Triggering test run..."
+# .github/workflows/testrigor.yml
 
-    URL="https://app.testrigor.com/api/v1/test_suites/${{ secrets.TR_SUITE_ID }}/execute.json"
+name: testRigor CI
+ 
+on:
 
-    echo "Calling: $URL"
+  push:
 
-    http_response=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
-      -H "Authorization: Token ${{ secrets.TR_API_KEY }}" \
-      -H "Content-Type: application/json" \
-      -d '{ "branch": "main" }')
+    branches:
 
-    echo "----- Raw API Response -----"
-    echo "$http_response"
-    echo "----------------------------"
+      - main
 
-    body=$(echo "$http_response" | sed '$d')
-    status=$(echo "$http_response" | tail -n1)
+  workflow_dispatch:
+ 
+jobs:
 
-    echo "📩 HTTP Status: $status"
-    echo "📦 Response Body: $body"
+  run-tests:
 
-    if [ "$status" != "200" ]; then
-      echo "❌ API call failed with status code $status"
-      exit 1
-    fi
+    runs-on: ubuntu-latest
 
-    run_id=$(echo "$body" | jq -r '.id')
+    steps:
 
-    if [ "$run_id" == "null" ] || [ -z "$run_id" ]; then
-      echo "❌ No run ID returned."
-      exit 1
-    fi
+      - name: Checkout code
 
-    echo "✅ Test run started with ID: $run_id"
-    echo "run_id=$run_id" >> $GITHUB_ENV
+        uses: actions/checkout@v3
+ 
+      - name: Run testRigor script
+
+        run: |
+
+          # Paste the Bash script you copied here,
+
+          # replacing placeholders like {$auth-token} and {$testId}
+
+          # with your GitHub secret variables:
+
+          # ${{ secrets.TR_AUTH_TOKEN }}, ${{ secrets.TR_SUITE_ID }}
+
+ 
