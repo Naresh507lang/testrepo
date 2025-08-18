@@ -44,9 +44,10 @@ jobs:
         # ... polling step here ...
 
       # ✅ Add your deploy step here:
-      - name: Deploy to production
-        if: success()  # Runs only if all previous steps succeeded
-        run: echo "🚀 Deploying to production..."
-        # Replace the above with your actual deploy commands
+    
+- name: Deploy to production
+  if: success()
+  run: echo "🚀 Deploying to production..."
+
 
  
