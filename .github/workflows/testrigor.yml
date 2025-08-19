@@ -1,58 +1,16 @@
-# .github/workflows/testrigor.yml
-name: testRigor CI
+- name: Poll test results
+  id: poll
+  run: |
+    run_id="${{ steps.trigger.outputs.run_id }}"
+    echo "Polling for testRigor test results for run ID: $run_id"
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+    for i in {1..30}; do
+      echo "Polling attempt $i..."
+      response=$(curl -s -w "\n%{http_code}" -X GET "https://api.testrigor.com/v1/test_runs/$run_id" \
+        -H "Authorization: Bearer ${{ secrets.TR_API_KEY }}")
 
-jobs:
-  run-tests:
-    runs-on: ubuntu-latest
+      # Split response and HTTP status
+      http_body=$(echo "$response" | head -n -1)
+      http_code=$(echo "$response" | tail -n1)
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Trigger testRigor Test Suite via API
-        id: trigger
-        run: |
-          echo "Triggering testRigor test run..."
-          response=$(curl -s -X POST "https://api.testrigor.com/v1/test_suites/${{ secrets.TR_SUITE_ID }}/run" \
-            -H "Authorization: Bearer ${{ secrets.TR_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{}')
-
-          run_id=$(echo "$response" | jq -r '.test_run_id')
-          echo "Test Run ID: $run_id"
-          echo "run_id=$run_id" >> $GITHUB_OUTPUT
-
-      - name: Poll test results
-        id: poll
-        run: |
-          run_id="${{ steps.trigger.outputs.run_id }}"
-          echo "Polling for testRigor test results for run ID: $run_id"
-
-          for i in {1..30}; do
-            status=$(curl -s -X GET "https://api.testrigor.com/v1/test_runs/$run_id" \
-              -H "Authorization: Bearer ${{ secrets.TR_API_KEY }}" \
-              | jq -r '.status')
-            echo "Current status: $status"
-
-            if [[ "$status" == "FINISHED" || "$status" == "FAILED" ]]; then
-              break
-            fi
-            sleep 10
-          done
-
-          if [[ "$status" != "FINISHED" ]]; then
-            echo "❌ TestRigor tests failed or did not complete in time."
-            exit 1
-          else
-            echo "✅ TestRigor tests finished successfully."
-          fi
-
-      - name: Deploy to production
-        if: success()
-        run: echo "🚀 Deploying to production..."
+      echo "HTTP Status: $http_code"
