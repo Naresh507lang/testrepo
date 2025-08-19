@@ -15,19 +15,43 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Run testRigor script
-        run: |
-          # Paste your testRigor bash script here
-          # Replace placeholders with your secrets
-          # e.g., ${{ secrets.TR_API_KEY }}, ${{ secrets.TR_SUITE_ID }}
-
       - name: Trigger testRigor Test Suite via API
+        id: trigger
         run: |
-          # Your curl command or testRigor API call here
+          echo "Triggering testRigor test run..."
+          response=$(curl -s -X POST "https://api.testrigor.com/v1/test_suites/${{ secrets.TR_SUITE_ID }}/run" \
+            -H "Authorization: Bearer ${{ secrets.TR_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+
+          run_id=$(echo "$response" | jq -r '.test_run_id')
+          echo "Test Run ID: $run_id"
+          echo "run_id=$run_id" >> $GITHUB_OUTPUT
 
       - name: Poll test results
+        id: poll
         run: |
-          # Your polling script here
+          run_id="${{ steps.trigger.outputs.run_id }}"
+          echo "Polling for testRigor test results for run ID: $run_id"
+
+          for i in {1..30}; do
+            status=$(curl -s -X GET "https://api.testrigor.com/v1/test_runs/$run_id" \
+              -H "Authorization: Bearer ${{ secrets.TR_API_KEY }}" \
+              | jq -r '.status')
+            echo "Current status: $status"
+
+            if [[ "$status" == "FINISHED" || "$status" == "FAILED" ]]; then
+              break
+            fi
+            sleep 10
+          done
+
+          if [[ "$status" != "FINISHED" ]]; then
+            echo "❌ TestRigor tests failed or did not complete in time."
+            exit 1
+          else
+            echo "✅ TestRigor tests finished successfully."
+          fi
 
       - name: Deploy to production
         if: success()
