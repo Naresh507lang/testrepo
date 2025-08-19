@@ -14,3 +14,34 @@
       http_code=$(echo "$response" | tail -n1)
 
       echo "HTTP Status: $http_code"
+
+      if [[ "$http_code" -ne 200 ]]; then
+        echo "❌ Failed to fetch test results. HTTP status $http_code"
+        echo "Response: $http_body"
+        exit 1
+      fi
+
+      # Try parsing the JSON status field
+      status=$(echo "$http_body" | jq -r '.status' 2>/dev/null || echo "parse_error")
+
+      if [[ "$status" == "parse_error" ]]; then
+        echo "❌ Failed to parse JSON response:"
+        echo "$http_body"
+        exit 1
+      fi
+
+      echo "Current status: $status"
+
+      if [[ "$status" == "FINISHED" || "$status" == "FAILED" ]]; then
+        break
+      fi
+
+      sleep 10
+    done
+
+    if [[ "$status" != "FINISHED" ]]; then
+      echo "❌ TestRigor tests did not finish successfully. Final status: $status"
+      exit 1
+    fi
+
+    echo "✅ TestRigor tests finished with status: $status"
