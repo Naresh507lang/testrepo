@@ -1,34 +1,27 @@
 # .github/workflows/testrigor.yml
 name: testRigor CI
- 
+
 on:
   push:
     branches:
       - main
   workflow_dispatch:
- 
+
 jobs:
   run-tests:
     runs-on: ubuntu-latest
- 
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
- 
-      - name: Run testRigor script
-        run: |
-          # Paste your testRigor bash script here
-          # Replace placeholders with your secrets
-          # e.g., ${{ secrets.TR_API_KEY }}, ${{ secrets.TR_SUITE_ID }}
- 
+
       - name: Trigger testRigor Test Suite via API
         run: |
-          # Your curl command or testRigor API call here
- 
-      - name: Poll test results
-        run: |
-          # Your polling script here
- 
+          curl --request POST \
+            --url "https://api.testrigor.com/test_suites/${{ secrets.TR_SUITE_ID }}/execute" \
+            --header "Authorization: Token ${{ secrets.TR_API_KEY }}" \
+            --header "Content-Type: application/json"
+
       - name: Deploy to production
         if: success()
         run: echo "🚀 Deploying to production..."
